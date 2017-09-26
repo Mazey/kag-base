@@ -23,11 +23,12 @@ float drawScoreboard(CPlayer@[] players, Vec2f topleft, CTeam@ team, Vec2f emble
 
 	//draw team info
 	GUI::DrawText(team.getName(), Vec2f(topleft.x, topleft.y), SColor(0xffffffff));
-	GUI::DrawText(getTranslatedString("Players: {PLAYERCOUNT}").replace("{PLAYERCOUNT}", "" + players.length), Vec2f(bottomright.x - 400, topleft.y), SColor(0xffffffff));
+	GUI::DrawText(getTranslatedString("Players: ") + players.length, Vec2f(bottomright.x - 400, topleft.y), SColor(0xffffffff));
 
 	topleft.y += stepheight * 2;
 
 	//draw player table header
+
 	GUI::DrawText(getTranslatedString("Player"), Vec2f(topleft.x, topleft.y), SColor(0xffffffff));
 	GUI::DrawText(getTranslatedString("Username"), Vec2f(bottomright.x - 400, topleft.y), SColor(0xffffffff));
 	GUI::DrawText(getTranslatedString("Ping"), Vec2f(bottomright.x - 260, topleft.y), SColor(0xffffffff));
@@ -193,9 +194,6 @@ void onRenderScoreboard(CRules@ this)
 	CPlayer@ localPlayer = getLocalPlayer();
 	if (localPlayer is null)
 		return;
-	int localTeam = localPlayer.getTeamNum();
-	if (localTeam != 0 && localTeam != 1)
-		localTeam = 0;
 
 	@hoveredPlayer = null;
 
@@ -211,15 +209,9 @@ void onRenderScoreboard(CRules@ this)
 
 	}
 
-	if (localTeam == 0)
-		topleft.y = drawScoreboard(blueplayers, topleft, this.getTeam(0), Vec2f(0, 0));
-	else
-		topleft.y = drawScoreboard(redplayers, topleft, this.getTeam(1), Vec2f(32, 0));
+	topleft.y = drawScoreboard(blueplayers, topleft, this.getTeam(0), Vec2f(0, 0));
 	topleft.y += 52;
-	if (localTeam == 1)
-		topleft.y = drawScoreboard(blueplayers, topleft, this.getTeam(0), Vec2f(0, 0));
-	else
-		topleft.y = drawScoreboard(redplayers, topleft, this.getTeam(1), Vec2f(32, 0));
+	topleft.y = drawScoreboard(redplayers, topleft, this.getTeam(1), Vec2f(32, 0));
 	topleft.y += 52;
 
 	if (spectators.length > 0)
