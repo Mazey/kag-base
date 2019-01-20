@@ -135,6 +135,11 @@ void onTick(CBlob@ this)
 
 	const bool myplayer = this.isMyPlayer();
 
+	if (getNet().isClient() && !this.isInInventory() && myplayer)  //Knight charge cursor
+	{
+		SwordCursorUpdate(this, knight);
+	}
+
 	//with the code about menus and myplayer you can slash-cancel;
 	//we'll see if knights dmging stuff while in menus is a real issue and go from there
 	if (knocked > 0)// || myplayer && getHUD().hasMenus())
@@ -294,7 +299,7 @@ void onTick(CBlob@ this)
 
 		if (knight.swordTimer >= KnightVars::slash_charge_limit)
 		{
-			Sound::Play("/Stun", pos, 1.0f, this.getSexNum() == 0 ? 1.0f : 2.0f);
+			Sound::Play("/Stun", pos, 1.0f, this.getSexNum() == 0 ? 1.0f : 1.5f);
 			SetKnocked(this, 15);
 		}
 
@@ -381,6 +386,8 @@ void onTick(CBlob@ this)
 		else if (knight.state >= KnightStates::sword_cut_mid &&
 		         knight.state <= KnightStates::sword_cut_down) // cut state
 		{
+			this.Tag("prevent crouch");
+
 			if (delta == DELTA_BEGIN_ATTACK)
 			{
 				Sound::Play("/SwordSlash", this.getPosition());
@@ -407,6 +414,8 @@ void onTick(CBlob@ this)
 		else if (knight.state == KnightStates::sword_power ||
 		         knight.state == KnightStates::sword_power_super)
 		{
+			this.Tag("prevent crouch");
+
 			//setting double
 			if (knight.state == KnightStates::sword_power_super &&
 			        this.isKeyJustPressed(key_action1))
@@ -545,6 +554,7 @@ void onTick(CBlob@ this)
 				setShieldDirection(this, Vec2f(horiz, 2));
 				setShieldAngle(this, SHIELD_BLOCK_ANGLE_SLIDING);
 			}
+			this.Tag("prevent crouch");
 		}
 		else if (walking)
 		{
@@ -560,6 +570,8 @@ void onTick(CBlob@ this)
 			{
 				setShieldDirection(this, Vec2f(horiz, -3));
 			}
+
+			this.Tag("prevent crouch");
 		}
 		else
 		{
@@ -619,6 +631,39 @@ void onTick(CBlob@ this)
 	{
 		knight_clear_actor_limits(this);
 	}
+
+
+}
+
+void SwordCursorUpdate(CBlob@ this, KnightInfo@ knight)
+{
+		if (knight.swordTimer >= KnightVars::slash_charge_level2 || knight.doubleslash || knight.state == KnightStates::sword_power_super)
+		{
+			getHUD().SetCursorFrame(10);
+		}
+		else if (knight.swordTimer >= KnightVars::slash_charge)
+		{
+			getHUD().SetCursorFrame(9);
+		}
+		// the yellow circle stays for the duration of a slash, helpful for newplayers (note: you cant attack while its yellow)
+		else if (knight.state == KnightStates::normal) // disappear after slash is done
+		// the yellow circle dissapears after mouse button release, more intuitive for improving slash timing
+		// else if (knight.swordTimer == 0) (disappear right after mouse release)
+		{
+			getHUD().SetCursorFrame(0);
+		}
+		else if (knight.swordTimer <= KnightVars::slash_charge && knight.state == KnightStates::sword_drawn)
+		{
+			int frame = 1 + (knight.swordTimer * 8.5) / KnightVars::slash_charge;
+			if (knight.swordTimer <= 3) //prevent from appearing when jabbing/jab spamming
+			{
+				getHUD().SetCursorFrame(0);
+			}
+			else
+			{
+				getHUD().SetCursorFrame(frame);
+			}
+		}
 }
 
 void onCommand(CBlob@ this, u8 cmd, CBitStream @params)
@@ -843,6 +888,21 @@ void DoAttack(CBlob@ this, f32 damage, f32 aimangle, f32 arcdegrees, u8 type, in
 							if (canhit)
 							{
 								map.server_DestroyTile(hi.hitpos, 0.1f, this);
+								if (gold)
+								{
+									// Note: 0.1f damage doesn't harvest anything I guess
+									// This puts it in inventory - include MaterialCommon
+									//Material::fromTile(this, hi.tile, 1.f);
+
+									CBlob@ ore = server_CreateBlobNoInit("mat_gold");
+									if (ore !is null)
+									{
+										ore.Tag('custom quantity');
+	     								ore.Init();
+	     								ore.setPosition(pos);
+	     								ore.server_SetQuantity(4);
+	     							}
+								}
 							}
 						}
 					}
@@ -1021,14 +1081,14 @@ void onHitBlob(CBlob@ this, Vec2f worldPoint, Vec2f velocity, f32 damage, CBlob@
 	        )
 	        && blockAttack(hitBlob, velocity, 0.0f))
 	{
-		this.getSprite().PlaySound("/Stun", 1.0f, this.getSexNum() == 0 ? 1.0f : 2.0f);
+		this.getSprite().PlaySound("/Stun", 1.0f, this.getSexNum() == 0 ? 1.0f : 1.5f);
 		SetKnocked(this, 30);
 	}
 
 	if (customData == Hitters::shield)
 	{
 		SetKnocked(hitBlob, 20);
-		this.getSprite().PlaySound("/Stun", 1.0f, this.getSexNum() == 0 ? 1.0f : 2.0f);
+		this.getSprite().PlaySound("/Stun", 1.0f, this.getSexNum() == 0 ? 1.0f : 1.5f);
 	}
 }
 
